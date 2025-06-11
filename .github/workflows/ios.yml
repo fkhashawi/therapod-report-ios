@@ -31,7 +31,7 @@ jobs:
 
       - name: Build iOS app
         run: |
-          cd ios
+          cd ios/App
           xcodebuild -scheme App -sdk iphoneos -configuration Release archive -archivePath ${{ github.workspace }}/build/App.xcarchive
 
       - name: Export IPA
