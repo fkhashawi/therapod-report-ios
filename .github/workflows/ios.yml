@@ -27,7 +27,7 @@ jobs:
         run: npm install --global @capacitor/cli
 
       - name: Sync Capacitor with iOS
-        run: npx cap copr ios
+        run: npx cap copy ios
 
       - name: Build iOS app
         run: |
