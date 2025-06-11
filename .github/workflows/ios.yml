@@ -39,7 +39,7 @@ jobs:
           xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/App.xcarchive -exportOptionsPlist ios/App/exportOptions.plist -exportPath ${{ github.workspace }}/build/IPA
 
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Therapod-iOS-App
           path: build/IPA/*.ipa
