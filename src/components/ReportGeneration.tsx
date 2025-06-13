@@ -4,37 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, Download, Globe, Cloud, RotateCcw, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchReportFromOpenAI, SessionData, GeneratedReport } from '@/integrations/openai/client';
 
-interface SessionData {
-  patientName: string;
-  therapistName: string;
-  sessionDate: string;
-  sessionNumber: number;
-  sessionDuration: number;
-  patientFileNumber: string;
-  sessionSummary: string;
-  agreedAssignments: string;
-  nextSessionTopics: string;
-  therapistComments: string;
-  beckDepressionScore: number;
-  beckAnxietyScore: number;
-  hasOtherScale: boolean;
-  otherScaleName: string;
-  otherScaleScore: number;
-  hasAdditionalScores: boolean;
-}
-
-interface GeneratedReport {
-  dapReport: {
-    data: string;
-    assessment: string;
-    plan: string;
-  };
-  suggestedDiagnosis: string;
-  nextSessionGoals: string[];
-  recommendedTechniques: string[];
-  suggestedWorksheets: string[];
-}
 
 interface ReportGenerationProps {
   sessionData: SessionData;
@@ -45,6 +16,7 @@ const ReportGeneration = ({ sessionData, onNewReport }: ReportGenerationProps) =
   const [isGenerating, setIsGenerating] = useState(true);
   const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     generateReport();
@@ -52,43 +24,18 @@ const ReportGeneration = ({ sessionData, onNewReport }: ReportGenerationProps) =
 
   const generateReport = async () => {
     setIsGenerating(true);
-    
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Mock AI-generated report
-    const mockReport: GeneratedReport = {
-      dapReport: {
-        data: `Patient ${sessionData.patientName} attended session #${sessionData.sessionNumber} on ${sessionData.sessionDate}. Session duration: ${sessionData.sessionDuration} minutes. Patient presented with concerns discussed in the session summary. Assessment scores: Beck Depression - ${sessionData.beckDepressionScore}, Beck Anxiety - ${sessionData.beckAnxietyScore}. ${sessionData.hasOtherScale ? `Additional scale (${sessionData.otherScaleName}): ${sessionData.otherScaleScore}` : ''}`,
-        assessment: `Based on the session content and assessment scores, the patient demonstrates ongoing therapeutic progress. The Beck Depression Score of ${sessionData.beckDepressionScore} indicates ${sessionData.beckDepressionScore > 20 ? 'severe' : sessionData.beckDepressionScore > 13 ? 'moderate' : 'mild'} depression levels. The Beck Anxiety Score of ${sessionData.beckAnxietyScore} suggests ${sessionData.beckAnxietyScore > 25 ? 'severe' : sessionData.beckAnxietyScore > 15 ? 'moderate' : 'mild'} anxiety symptoms. The patient's engagement in therapy appears productive and collaborative.`,
-        plan: `Continue current therapeutic approach with focus on agreed assignments: ${sessionData.agreedAssignments}. Plan to address the following topics in next session: ${sessionData.nextSessionTopics}. Implement recommended CBT and ACT techniques as outlined below.`
-      },
-      suggestedDiagnosis: sessionData.beckDepressionScore > 13 ? "Major Depressive Disorder" : "Adjustment Disorder with Depressed Mood",
-      nextSessionGoals: [
-        "Review homework assignments and progress",
-        "Address cognitive distortions identified in current session",
-        "Develop coping strategies for anxiety management",
-        "Explore behavioral activation techniques"
-      ],
-      recommendedTechniques: [
-        "Cognitive Restructuring (CBT)",
-        "Behavioral Activation (CBT)",
-        "Mindfulness and Acceptance (ACT)",
-        "Values Clarification (ACT)",
-        "Thought Record Exercises"
-      ],
-      suggestedWorksheets: [
-        "Daily Thought Record",
-        "Behavioral Activation Planning Sheet",
-        "Values Assessment Worksheet",
-        "Mindfulness Practice Log"
-      ]
-    };
-
-    setGeneratedReport(mockReport);
-    setIsGenerating(false);
-    setShowReport(true);
-    toast.success("Report generated successfully!");
+    setError(null);
+    try {
+      const report = await fetchReportFromOpenAI(sessionData);
+      setGeneratedReport(report);
+      setShowReport(true);
+      toast.success('Report generated successfully!');
+    } catch (err) {
+      console.error('Error generating report:', err);
+      setError('Failed to generate report. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const regenerateReport = () => {
@@ -282,6 +229,19 @@ const ReportGeneration = ({ sessionData, onNewReport }: ReportGenerationProps) =
             <p className="text-muted-foreground text-center max-w-md">
               Our AI is analyzing your session data and creating a comprehensive DAP report with clinical recommendations...
             </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center space-y-4 py-12">
+            <p className="text-destructive text-center">{error}</p>
+            <Button onClick={generateReport}>Try Again</Button>
           </CardContent>
         </Card>
       </div>
